@@ -18,9 +18,11 @@
 #define SHM_START2 0x7fffb8dfc000 /* 0x7fffb7dfc000 will restore to 0x7fffb7dfc000 */
 #define SHM_START3 0x7fffb6dfc000 /* 0x7fffb7dfc000 will restore to 0x7fffb7dfc000 */
 #define SHM_START4 0x7ffdf7dfc000 /* 8G */
+#define SHM_START5 0x7ffdf7c55000 /* 8G */
 
 #define SHM_SIZE SHM_SIZE_8G
-#define SHM_START SHM_START4
+//#define SHM_START SHM_START4
+#define SHM_START SHM_START5
 
 #ifdef __x86_64__
 #define SYSCALL_PCN_DSHM_MMAP   334
@@ -77,7 +79,7 @@ void communicate(char* shared_memory, struct Arguments* args) {
 
 	//for (; args->count > 0; --args->count) {
 	for (message = args->count; message > 0; --message) {
-		printf("msg cnt %d\n", message);
+		//printf("[dbg] msg cnt %d\n", message);
 		shm_wait(guard);
 		// Read
 		memcpy(buffer, shared_memory + 1, args->size);
@@ -162,6 +164,19 @@ int main(int argc, char* argv[]) {
         printf("ERROR: Got a big problem: NULL returned mmap *ptr\n");
         exit(-1);
     }
+
+	if (shared_memory != (void*)SHM_START) {
+        printf("ERROR: Got a mmap *ptr that is not I want (want: %p got: %p)\n",
+                    (void*)SHM_START, shared_memory);
+        if (shared_memory) {
+            printf("popcorn_dshm_munmap()\n");
+            popcorn_dshm_munmap((unsigned long)shared_memory, SHM_SIZE);
+        }
+        printf("ERROR: doesn't get expected returned mmap *ptr\n");
+        exit(-1);
+    }
+    printf("got shared_memory %p == (expect 0x%lx)\n",
+            shared_memory, (unsigned long)SHM_START);
 
 	communicate(shared_memory, &args);
 

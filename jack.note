@@ -1,0 +1,16 @@
+src: ~/ipc-bench-jack/source/shm
+exec: ~/ipc-bench-jack/build/source/shm
+
+Modify & compile code:
+$ cd ~/ipc-bench-jack/source/shm
+$ make
+
+Excutables:
+$ ls ~/ipc-bench-jack/build/source/shm
+shm-client  shm-server
+
+
+Run distributedly
+host$ ./msg_pophype-shm2node-homo.sh
+$ ./shm-server 
+$ ./shm-client

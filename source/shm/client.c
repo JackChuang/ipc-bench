@@ -68,13 +68,16 @@ void shm_notify(atomic_char* guard) {
 
 void communicate(char* shared_memory, struct Arguments* args) {
 	// Buffer into which to read data
+	int message;
 	void* buffer = malloc(args->size);
 
 	atomic_char* guard = (atomic_char*)shared_memory;
 	atomic_init(guard, 's');
 	assert(sizeof(atomic_char) == 1);
 
-	for (; args->count > 0; --args->count) {
+	//for (; args->count > 0; --args->count) {
+	for (message = args->count; message > 0; --message) {
+		printf("msg cnt %d\n", message);
 		shm_wait(guard);
 		// Read
 		memcpy(buffer, shared_memory + 1, args->size);
@@ -104,6 +107,8 @@ int main(int argc, char* argv[]) {
 	struct Arguments args;
 
 	parse_arguments(&args, argc, argv);
+	printf("args.size = %d args.count = %d\n",
+			args.size, args.count);
 
 //	segment_key = generate_key("shm");
 

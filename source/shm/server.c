@@ -88,6 +88,7 @@ void communicate(char* shared_memory, struct Arguments* args) {
 	setup_benchmarks(&bench);
 
 	for (message = 0; message < args->count; ++message) {
+		printf("msg cnt %d\n", message);
 		bench.single_start = now();
 
 		// Write
@@ -121,6 +122,8 @@ int main(int argc, char* argv[]) {
 	// Fetch command-line arguments
 	struct Arguments args;
 	parse_arguments(&args, argc, argv);
+    printf("args.size = %d args.count = %d\n",
+            args.size, args.count);
 
 //	segment_key = generate_key("shm");
 

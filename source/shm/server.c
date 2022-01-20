@@ -8,10 +8,51 @@
 
 #include "common/common.h"
 
-void cleanup(int segment_id, char* shared_memory) {
+
+#include <sys/mman.h>
+#define SHM_SIZE_1M 0x100000 /* 1M */
+#define SHM_SIZE_1G 0x40000000 /* 1G */
+#define SHM_SIZE_8G 0x200000000 /* 8G */
+#define SHM_START1 0x7ffff6cfc000 /**/
+#define SHM_START2 0x7fffb8dfc000 /* 0x7fffb7dfc000 will restore to 0x7fffb7dfc000 */
+#define SHM_START3 0x7fffb6dfc000 /* 0x7fffb7dfc000 will restore to 0x7fffb7dfc000 */
+#define SHM_START4 0x7ffdf7dfc000 /* 8G */
+
+#define SHM_SIZE SHM_SIZE_8G
+#define SHM_START SHM_START4
+
+#ifdef __x86_64__
+#define SYSCALL_PCN_DSHM_MMAP   334
+#define SYSCALL_PCN_DSHM_MUNMAP   335
+#define SYSCALL_GETTID 186
+#elif __aarch64__
+#define SYSCALL_PCN_DSHM_MMAP   289
+#define SYSCALL_PCN_DSHM_MUNMAP   290
+#define SYSCALL_GETTID 178
+#elif __powerpc64__
+#define SYSCALL_PCN_DSHM_MMAP   -1
+#define SYSCALL_PCN_DSHM_MUNMAP   -2
+#define SYSCALL_GETTID 207
+#else
+#error Does not support this architecture
+#endif
+
+long int popcorn_dshm_mmap(unsigned long addr, unsigned long len,
+                    unsigned long prot, unsigned long flags,
+                    unsigned long fd, unsigned long pgoff) {
+    return syscall(SYSCALL_PCN_DSHM_MMAP, addr, len, prot, flags, fd, pgoff);
+}
+
+long int popcorn_dshm_munmap(unsigned long addr, size_t len) {
+    return syscall(SYSCALL_PCN_DSHM_MUNMAP, addr, len);
+}
+
+
+//void cleanup(int segment_id, char* shared_memory) {
+void cleanup(char* shared_memory) {
 	// Detach the shared memory from this process' address space.
 	// If this is the last process using this shared memory, it is removed.
-	shmdt(shared_memory);
+//	shmdt(shared_memory);
 
 	/*
 		Deallocate manually for security. We pass:
@@ -22,7 +63,9 @@ void cleanup(int segment_id, char* shared_memory) {
 				 for deletion (it is populated with certain fields for other
 				 calls, notably IPC_STAT, where you would pass a struct shmid_ds*).
 	*/
-	shmctl(segment_id, IPC_RMID, NULL);
+//	shmctl(segment_id, IPC_RMID, NULL);
+	printf("popcorn_dshm_munmap()\n");
+	popcorn_dshm_munmap((unsigned long)shared_memory, SHM_SIZE);
 }
 
 void shm_wait(atomic_char* guard) {
@@ -65,7 +108,7 @@ void communicate(char* shared_memory, struct Arguments* args) {
 
 int main(int argc, char* argv[]) {
 	// The identifier for the shared memory segment
-	int segment_id;
+//	int segment_id;
 
 	// The *actual* shared memory, that this and other
 	// processes can read and write to as if it were
@@ -73,13 +116,13 @@ int main(int argc, char* argv[]) {
 	char* shared_memory;
 
 	// Key for the memory segment
-	key_t segment_key;
+//	key_t segment_key;
 
 	// Fetch command-line arguments
 	struct Arguments args;
 	parse_arguments(&args, argc, argv);
 
-	segment_key = generate_key("shm");
+//	segment_key = generate_key("shm");
 
 	/*
 		The call that actually allocates the shared memory segment.
@@ -98,11 +141,11 @@ int main(int argc, char* argv[]) {
 			- Use `ipcs -m` to show shared memory segments and their IDs
 			- Use `ipcrm -m <segment_id>` to remove/deallocate a shared memory segment
 	*/
-	segment_id = shmget(segment_key, 1 + args.size, IPC_CREAT | 0666);
+//	segment_id = shmget(segment_key, 1 + args.size, IPC_CREAT | 0666);
 
-	if (segment_id < 0) {
-		throw("Error allocating segment");
-	}
+//	if (segment_id < 0) {
+//		throw("Error allocating segment");
+//	}
 
 	/*
 		Once the shared memory segment has been created, it must be
@@ -121,15 +164,25 @@ int main(int argc, char* argv[]) {
 		shmat will return a pointer to the address space at which it attached the
 		shared memory. Children processes created with fork() inherit this segment.
 	*/
-	shared_memory = (char*)shmat(segment_id, NULL, 0);
+//	shared_memory = (char*)shmat(segment_id, NULL, 0);
+	shared_memory = (char*)popcorn_dshm_mmap(SHM_START, SHM_SIZE,
+			PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
-	if (shared_memory == (char*)-1) {
-		throw("Error attaching segment");
-	}
+//	if (shared_memory == (char*)-1) {
+//		throw("Error attaching segment");
+//	}
+	if (shared_memory) {
+        printf("mmap *ptr = %p size = 0x%lx (sizeof shared_memory 0x%lx)\n",
+                shared_memory, (unsigned long)SHM_SIZE, sizeof(shared_memory));
+    } else {
+        printf("ERROR: Got a big problem: NULL returned mmap *ptr\n");
+        exit(-1);
+    }
 
 	communicate(shared_memory, &args);
 
-	cleanup(segment_id, shared_memory);
+	//cleanup(segment_id, shared_memory);
+	cleanup(shared_memory);
 
 	return EXIT_SUCCESS;
 }

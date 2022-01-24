@@ -52,9 +52,6 @@ long int popcorn_dshm_munmap(unsigned long addr, size_t len) {
 
 
 void cleanup(char* shared_memory) {
-	// Detach the shared memory from this process' address space.
-	// If this is the last process using this shared memory, it is removed.
-//	shmdt(shared_memory);
 	printf("popcorn_dshm_munmap()\n");
 	popcorn_dshm_munmap((unsigned long)shared_memory, SHM_SIZE);
 }
@@ -70,7 +67,7 @@ void shm_notify(atomic_char* guard) {
 
 void communicate(char* shared_memory, struct Arguments* args) {
 	// Buffer into which to read data
-	int message;
+	int i;
 	void* buffer = malloc(args->size);
 
 	atomic_char* guard = (atomic_char*)shared_memory;
@@ -78,14 +75,17 @@ void communicate(char* shared_memory, struct Arguments* args) {
 	assert(sizeof(atomic_char) == 1);
 
 	//for (; args->count > 0; --args->count) {
-	for (message = args->count; message > 0; --message) {
-		//printf("[dbg] msg cnt %d\n", message);
+	//for (i = args->count; i > 0; --i) {
+	for (i = 0; i < args->count; ++i) {
+		printf("[dbg] msg cnt %d/%d\n", i, args->count);
 		shm_wait(guard);
 		// Read
-		memcpy(buffer, shared_memory + 1, args->size);
+		//memcpy(buffer, shared_memory + 1, args->size);
+		memcpy(buffer, shared_memory + ((i+1) * 4096), args->size); // init: +1 to avoide sync bit
 
 		// Write back
-		memset(shared_memory + 1, '*', args->size);
+		//memset(shared_memory + 1, '*', args->size);
+		memset(shared_memory + ((i+1) * 4096), '*', args->size);
 
 		shm_notify(guard);
 	}
@@ -94,16 +94,10 @@ void communicate(char* shared_memory, struct Arguments* args) {
 }
 
 int main(int argc, char* argv[]) {
-	// The identifier for the shared memory segment
-//	int segment_id;
-
 	// The *actual* shared memory, that this and other
 	// processes can read and write to as if it were
 	// any other plain old memory
 	char* shared_memory;
-
-	// Key for the memory segment
-//	key_t segment_key;
 
 	// Fetch command-line arguments
 	struct Arguments args;
@@ -112,51 +106,9 @@ int main(int argc, char* argv[]) {
 	printf("args.size = %d args.count = %d\n",
 			args.size, args.count);
 
-//	segment_key = generate_key("shm");
 
-	/*
-		The call that actually allocates the shared memory segment.
-		Arguments:
-			1. The shared memory key. This must be unique across the OS.
-			2. The number of bytes to allocate. This will be rounded up to the OS'
-				 pages size for alignment purposes.
-			3. The creation flags and permission bits, we pass IPC_CREAT to ensure
-				 that the segment will be created if it does not yet exist. Using
-				 0666 for permission flags means read + write permission for the user,
-				 group and world.
-		The call will return the segment ID if the key was valid,
-		else the call fails.
-	*/
-//	segment_id = shmget(segment_key, 1 + args.size, IPC_CREAT | 0666);
-
-//	if (segment_id < 0) {
-//		throw("Could not get segment");
-//	}
-
-	/*
-	Once the shared memory segment has been created, it must be
-	attached to the address space of each process that wishes to
-	use it. For this, we pass:
-		1. The segment ID returned by shmget
-		2. A pointer at which to attach the shared memory segment. This
-			 address must be page-aligned. If you simply pass NULL, the OS
-			 will find a suitable region to attach the segment.
-		3. Flags, such as:
-			 - SHM_RND: round the second argument (the address at which to
-				 attach) down to a multiple of the page size. If you don't
-				 pass this flag but specify a non-null address as second argument
-				 you must ensure page-alignment yourself.
-			 - SHM_RDONLY: attach for reading only (independent of access bits)
-	shmat will return a pointer to the address space at which it attached the
-	shared memory. Children processes created with fork() inherit this segment.
-*/
-//	shared_memory = (char*)shmat(segment_id, NULL, 0);
 	shared_memory = (char*)popcorn_dshm_mmap(SHM_START, SHM_SIZE,
 			PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
-//	if (shared_memory < (char*)0) {
-//		throw("Could not attach segment");
-//	}
 	if (shared_memory) {
         printf("mmap *ptr = %p size = 0x%lx (sizeof shared_memory 0x%lx)\n",
 				shared_memory, (unsigned long)SHM_SIZE, sizeof(shared_memory));
@@ -177,6 +129,7 @@ int main(int argc, char* argv[]) {
     }
     printf("got shared_memory %p == (expect 0x%lx)\n",
             shared_memory, (unsigned long)SHM_START);
+
 
 	communicate(shared_memory, &args);
 

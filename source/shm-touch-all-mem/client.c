@@ -67,7 +67,8 @@ void shm_notify(atomic_char* guard) {
 
 void communicate(char* shared_memory, struct Arguments* args) {
 	// Buffer into which to read data
-	int i;
+	//int i;
+	unsigned long i;
 	void* buffer = malloc(args->size);
 
 	atomic_char* guard = (atomic_char*)shared_memory;
@@ -77,7 +78,9 @@ void communicate(char* shared_memory, struct Arguments* args) {
 	//for (; args->count > 0; --args->count) {
 	//for (i = args->count; i > 0; --i) {
 	for (i = 0; i < args->count; ++i) {
-		printf("[dbg] msg cnt %d/%d\n", i, args->count);
+		//printf("[dbg] msg cnt %d/%d\n", i, args->count);
+		printf("[dbg] msg cnt %lu/%d pgs (%lu M)\n",
+				i, args->count, (i * 4096) / 1024 / 1024);
 		shm_wait(guard);
 		// Read
 		//memcpy(buffer, shared_memory + 1, args->size);

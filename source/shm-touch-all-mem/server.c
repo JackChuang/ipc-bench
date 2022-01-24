@@ -66,7 +66,7 @@ void shm_notify(atomic_char* guard) {
 
 void communicate(char* shared_memory, struct Arguments* args) {
 	struct Benchmarks bench;
-	int i;
+	unsigned long i;
 	void* buffer = malloc(args->size);
 	atomic_char* guard = (atomic_char*)shared_memory;
 
@@ -75,7 +75,8 @@ void communicate(char* shared_memory, struct Arguments* args) {
 	setup_benchmarks(&bench);
 
 	for (i = 0; i < args->count; ++i) {
-		printf("[dbg] msg cnt %d/%d\n", i, args->count);
+		printf("[dbg] msg cnt %lu/%d pgs (%lu M)\n",
+				i, args->count, (i * 4096) / 1024 / 1024);
 		// ./source/common/benchmarks.h:typedef unsigned long long bench_t;
 		// ./source/common/benchmarks.c:bench_t now() {
 		// ./source/common/benchmarks.h:bench_t now();
@@ -111,9 +112,10 @@ int main(int argc, char* argv[]) {
     //printf("args.size = %d args.count = %d\n",
     //        args.size, args.count);
     printf("args.size = %d args.count = %d "
-			"(walk size = %lu M) alloc size = %lu\n",
+			"(walk size = %lu M) alloc size = %lu M\n",
             args.size, args.count,
-			((unsigned long)args.count + 1) * 4096 / 1024 / 1024, SHM_SIZE);
+			(((unsigned long)args.count + 1) * 4096) / 1024 / 1024,
+			SHM_SIZE / 1024 / 1024);
 
 	shared_memory = (char*)popcorn_dshm_mmap(SHM_START, SHM_SIZE,
 			PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);

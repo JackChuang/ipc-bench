@@ -82,6 +82,9 @@ void communicate(char* shared_memory, struct Arguments* args) {
 		//printf("[dbg] msg cnt %d/%d\n", i, args->count);
 		printf("[dbg] msg cnt %lu/%d pgs (%lu M)\n",
 				i, args->count, (i * 4096) / 1024 / 1024);
+        if (i <= 100 || i % ( args->count / 100) == 0) {
+            printf("\t[dbg] #%lu/%u (<100 || =(count/100)**)\n", i, args->count);
+        }
 		shm_wait(guard);
 		// Read
 		//memcpy(buffer, shared_memory + 1, args->size);
@@ -131,7 +134,7 @@ int main(int argc, char* argv[]) {
         printf("ERROR: doesn't get expected returned mmap *ptr\n");
         exit(-1);
     }
-    printf("got shared_memory %p == (expect 0x%lx)\n",
+	printf("[GOOD] got shared_memory %p == (as expected 0x%lx)\n",
             shared_memory, (unsigned long)SHM_START);
 
     printf("init: warm up to get rid of pophype dsm bug\n");

@@ -76,6 +76,7 @@ void communicate(char* shared_memory, struct Arguments* args) {
 	setup_benchmarks(&bench);
 
 	for (i = 0; i < args->count; ++i) {
+#if 0 // perf=0
 		printf("[dbg] msg cnt %lu/%d pgs (%lu M)\n",
 				i, args->count, (i * 4096) / 1024 / 1024);
 		// ./source/common/benchmarks.h:typedef unsigned long long bench_t;
@@ -84,6 +85,7 @@ void communicate(char* shared_memory, struct Arguments* args) {
         if (i <= 100 || i % (args->count / 100) == 0) {
             printf("\t[dbg] #%lu/%u (<100 || =(count/100)**)\n", i, args->count);
         }
+#endif
 		bench.single_start = now();
 
 		// Write

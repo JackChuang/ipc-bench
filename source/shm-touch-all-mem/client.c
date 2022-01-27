@@ -79,12 +79,14 @@ void communicate(char* shared_memory, struct Arguments* args) {
 	//for (; args->count > 0; --args->count) {
 	//for (i = args->count; i > 0; --i) {
 	for (i = 0; i < args->count; ++i) {
+#if 0 // perf=0
 		//printf("[dbg] msg cnt %d/%d\n", i, args->count);
 		printf("[dbg] msg cnt %lu/%d pgs (%lu M)\n",
 				i, args->count, (i * 4096) / 1024 / 1024);
         if (i <= 100 || i % ( args->count / 100) == 0) {
             printf("\t[dbg] #%lu/%u (<100 || =(count/100)**)\n", i, args->count);
         }
+#endif
 		shm_wait(guard);
 		// Read
 		//memcpy(buffer, shared_memory + 1, args->size);

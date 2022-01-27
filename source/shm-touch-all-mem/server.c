@@ -12,6 +12,7 @@
 #include <sys/mman.h>
 #define SHM_SIZE_1M 0x100000 /* 1M */
 #define SHM_SIZE_1G 0x40000000 /* 1G */
+#define SHM_SIZE_4G 0x100000000 /* 4G */
 #define SHM_SIZE_8G 0x200000000 /* 8G */
 #define SHM_START1 0x7ffff6cfc000 /**/
 #define SHM_START2 0x7fffb8dfc000 /* 0x7fffb7dfc000 will restore to 0x7fffb7dfc000 */
@@ -19,7 +20,7 @@
 #define SHM_START4 0x7ffdf7dfc000 /* 8G */
 #define SHM_START5 0x7ffdf7c55000 /* 8G */
 
-#define SHM_SIZE SHM_SIZE_8G
+#define SHM_SIZE SHM_SIZE_4G
 //#define SHM_START SHM_START4
 #define SHM_START SHM_START5
 
@@ -80,6 +81,9 @@ void communicate(char* shared_memory, struct Arguments* args) {
 		// ./source/common/benchmarks.h:typedef unsigned long long bench_t;
 		// ./source/common/benchmarks.c:bench_t now() {
 		// ./source/common/benchmarks.h:bench_t now();
+        if (i <= 100 || i % (args->count / 100) == 0) {
+            printf("\t[dbg] #%lu/%u (<100 || =(count/100)**)\n", i, args->count);
+        }
 		bench.single_start = now();
 
 		// Write
@@ -137,7 +141,7 @@ int main(int argc, char* argv[]) {
         printf("ERROR: doesn't get expected returned mmap *ptr\n");
         exit(-1);
     }
-    printf("got shared_memory %p == (expect 0x%lx)\n",
+    printf("[GOOD] got shared_memory %p == (as expected 0x%lx)\n",
 			shared_memory, (unsigned long)SHM_START);
 
 

@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 
     printf("init: warm up to get rid of pophype dsm bug\n");
 	unsigned long i;
-	for (i = 0; i < SHM_SIZE; i + 4096) {
+	for (i = 0; i < SHM_SIZE; i += 4096) {
 		shared_memory[i] = 'a';
 	}
     printf("init done\n");
